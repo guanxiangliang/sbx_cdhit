@@ -1,0 +1,25 @@
+rule run_cdhit:
+	input:
+		r1 = str(QC_FP/'cleaned'/'{sample}_1.fastq.gz'),
+                r2 = str(QC_FP/'cleaned'/'{sample}_2.fastq.gz') #files required for input	
+	params:
+                r1 = str(QC_FP/'dedup_cleaned'/'{sample}_1.fastq'),
+                r2 = str(QC_FP/'dedup_cleaned'/'{sample}_2.fastq'),
+                r11 = str(QC_FP/'dedup_cleaned'/'{sample}_11.fastq'),
+                r21 = str(QC_FP/'dedup_cleaned'/'{sample}_21.fastq')
+	output:
+		r1 = str(QC_FP/'dedup_backup'/'{sample}_1.fastq.gz'),
+                r2 = str(QC_FP/'dedup_backup'/'{sample}_2.fastq.gz') #files created after successful rule completion
+	shell:
+		"""
+		mv {input.r1}  {output.r1}
+		mv {input.r2}   {output.r2}
+                gunzip {output.r1}
+                gunzip {output.r2}
+                cd-hit-est -i {params.r1} -j {params.r2} -o {params.r11} -op {params.r21} -c 0.95 -n 8 -G 0 -aS 0.95 -g 1 -r 1 -M 200000 -d 0 -T {threads} 
+                gzip -c {params.r11} {input.r1} 
+                gzip -c {params.r21} {input.r2}
+                """
+rule all_cdhit:
+        input:
+                expand(str(QC_FP/'dedup_backup'/'{sample}_{rp}.fastq.gz'), sample=Samples.keys(),rp=Pairs)
